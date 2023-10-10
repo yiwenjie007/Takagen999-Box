@@ -1,6 +1,6 @@
 # Box
 
-App default settings can be set here :
+=== Source Code - Editing the app default settings ===
 /src/main/java/com/github/tvbox/osc/base/App.java
 
     private void initParams() {

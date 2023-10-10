@@ -1,6 +1,7 @@
 package com.github.tvbox.osc.util;
 
 import com.github.tvbox.osc.base.App;
+import com.github.tvbox.osc.picasso.CustomImageDownloader;
 import com.github.tvbox.osc.util.SSL.SSLSocketFactoryCompat;
 import com.lzy.okgo.OkGo;
 import com.lzy.okgo.https.HttpsUtils;
@@ -14,14 +15,13 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.security.cert.CertificateException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.X509TrustManager;
 
 import okhttp3.Cache;
 import okhttp3.HttpUrl;
@@ -32,6 +32,22 @@ import xyz.doikki.videoplayer.exo.ExoMediaSourceHelper;
 
 public class OkGoHelper {
     public static final long DEFAULT_MILLISECONDS = 10000;      //默认的超时时间
+
+    //https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/200
+    public static HashMap<Integer, String > httpPhaseMap  = new HashMap<Integer, String>(){{
+        put(200,"OK");
+        put(301,"Moved Permanently");
+        put(302,"Found");
+        put(400,"Bad Request");
+        put(401,"Unauthorized");
+        put(403,"Forbidden");
+        put(404,"Not Found");
+        put(429,"Too Many Requests");
+        put(500,"Internal Server Error");
+        put(502,"Bad Gateway");
+        put(503,"Service Unavailable");
+        put(504,"Gateway Timeout");
+    }};
 
     static void initExoOkHttpClient() {
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
@@ -123,6 +139,8 @@ public class OkGoHelper {
     static OkHttpClient defaultClient = null;
     static OkHttpClient noRedirectClient = null;
 
+    static OkHttpClient cacheClient = null;
+
     public static OkHttpClient getDefaultClient() {
         return defaultClient;
     }
@@ -153,13 +171,12 @@ public class OkGoHelper {
                 .connectTimeout(DEFAULT_MILLISECONDS, TimeUnit.MILLISECONDS)
                 .dns(dnsOverHttps);
         try {
-            builder = setOkHttpSsl(builder);
+            setOkHttpSsl(builder);
         } catch (Throwable th) {
             th.printStackTrace();
         }
 
         HttpHeaders.setUserAgent(Version.userAgent());
-
         OkHttpClient okHttpClient = builder.build();
         OkGo.getInstance().setOkHttpClient(okHttpClient);
 
@@ -169,38 +186,26 @@ public class OkGoHelper {
         builder.followSslRedirects(false);
         noRedirectClient = builder.build();
 
+
+        builder.cache(new okhttp3.Cache(new File(FileUtils.getCachePath() + "/pic/"), 100 * 1024 * 1024)); // 缓存 100 MB
+        cacheClient = builder.followRedirects(true).followSslRedirects(true).build();
+
         initExoOkHttpClient();
-        initPicasso(okHttpClient);
+        initPicasso(cacheClient);
     }
 
     static void initPicasso(OkHttpClient client) {
-        OkHttp3Downloader downloader = new OkHttp3Downloader(client);
+//        OkHttp3Downloader downloader = new OkHttp3Downloader(client);
+        CustomImageDownloader downloader = new CustomImageDownloader(client);
         Picasso picasso = new Picasso.Builder(App.getInstance()).downloader(downloader).build();
         Picasso.setSingletonInstance(picasso);
     }
 
-    private static synchronized OkHttpClient.Builder setOkHttpSsl(OkHttpClient.Builder builder) {
+    private static synchronized void setOkHttpSsl(OkHttpClient.Builder builder) {
         try {
-            // 自定义一个信任所有证书的TrustManager，添加SSLSocketFactory的时候要用到
-            final X509TrustManager trustAllCert =
-                    new X509TrustManager() {
-                        @Override
-                        public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
-                        }
-
-                        @Override
-                        public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
-                        }
-
-                        @Override
-                        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                            return new java.security.cert.X509Certificate[]{};
-                        }
-                    };
-            final Tls12SocketFactory sslSocketFactory = new Tls12SocketFactory(new SSLSocketFactoryCompat(trustAllCert));
-            return builder
-                    .sslSocketFactory(sslSocketFactory, trustAllCert)
-                    .hostnameVerifier(HttpsUtils.UnSafeHostnameVerifier);
+            final SSLSocketFactory sslSocketFactory = new SSLSocketFactoryCompat(SSLSocketFactoryCompat.trustAllCert);
+            builder.sslSocketFactory(sslSocketFactory, SSLSocketFactoryCompat.trustAllCert);
+            builder.hostnameVerifier(HttpsUtils.UnSafeHostnameVerifier);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
