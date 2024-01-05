@@ -28,6 +28,7 @@ public class HawkConfig {
     public static final String HOME_LOCALE = "language";                 // 0 中文 1 英文
     public static final String HOME_SEARCH_POSITION = "search_position"; // true=Up, false=Down
     public static final String HOME_MENU_POSITION = "menu_position";     // true=Up, false=Down
+	public static final String HOME_DEFAULT_SHOW = "home_default_show";  //启动时直接进直播的开关
 
     // Player Settings
     public static final String SHOW_PREVIEW = "show_preview";
@@ -49,6 +50,9 @@ public class HawkConfig {
     public static final String SUBTITLE_TEXT_SIZE = "subtitle_text_size";
     public static final String SUBTITLE_TIME_DELAY = "subtitle_time_delay";
     public static final String THEME_SELECT = "theme_select";
+    public static final String BACKGROUND_PLAY_TYPE = "background_play_type";
+    public static final String FAST_SEARCH_MODE = "fast_search_mode";
+    public static final String SCREEN_DISPLAY = "screen_display";
 
     // Live Settings
     public static final String LIVE_CHANNEL = "last_live_channel_name";

@@ -27,7 +27,9 @@ import com.github.tvbox.osc.ui.dialog.ApiHistoryDialog;
 import com.github.tvbox.osc.ui.dialog.BackupDialog;
 import com.github.tvbox.osc.ui.dialog.HomeIconDialog;
 import com.github.tvbox.osc.ui.dialog.SelectDialog;
+import com.github.tvbox.osc.ui.dialog.ResetDialog;
 import com.github.tvbox.osc.ui.dialog.XWalkInitDialog;
+import com.github.tvbox.osc.util.DefaultConfig;
 import com.github.tvbox.osc.util.FastClickCheckUtil;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.HistoryHelper;
@@ -62,6 +64,7 @@ public class ModelSettingFragment extends BaseLazyFragment {
     private TextView tvApi;
     // Home Section
     private TextView tvHomeApi;
+	private TextView tvHomeDefaultShow;
     private TextView tvHomeShow;
     private TextView tvHomeIcon;
     private TextView tvHomeRec;
@@ -69,8 +72,7 @@ public class ModelSettingFragment extends BaseLazyFragment {
 
     // Player Section
     private TextView tvShowPreviewText;
-    private TextView tvScale;
-    private TextView tvPIP;
+    private TextView tvScale;    
     private TextView tvPlay;
     private TextView tvMediaCodec;
     private TextView tvVideoPurifyText;
@@ -82,6 +84,7 @@ public class ModelSettingFragment extends BaseLazyFragment {
     private TextView tvParseWebView;
     private TextView tvSearchView;
     private TextView tvDns;
+    private TextView tvFastSearchText;
 
     public static ModelSettingFragment newInstance() {
         return new ModelSettingFragment().setArguments();
@@ -98,6 +101,8 @@ public class ModelSettingFragment extends BaseLazyFragment {
 
     @Override
     protected void init() {
+    	tvFastSearchText = findViewById(R.id.showFastSearchText);
+        tvFastSearchText.setText(Hawk.get(HawkConfig.FAST_SEARCH_MODE, false) ? "已开启" : "已关闭");
         tvDebugOpen = findViewById(R.id.tvDebugOpen);
         tvDebugOpen.setText(Hawk.get(HawkConfig.DEBUG_OPEN, false) ? "开启" : "关闭");
         tvApi = findViewById(R.id.tvApi);
@@ -115,9 +120,7 @@ public class ModelSettingFragment extends BaseLazyFragment {
         tvShowPreviewText = findViewById(R.id.showPreviewText);
         tvShowPreviewText.setText(Hawk.get(HawkConfig.SHOW_PREVIEW, true) ? "开启" : "关闭");
         tvScale = findViewById(R.id.tvScaleType);
-        tvScale.setText(PlayerHelper.getScaleName(Hawk.get(HawkConfig.PLAY_SCALE, 0)));
-        tvPIP = findViewById(R.id.tvPIP);
-        tvPIP.setText(Hawk.get(HawkConfig.PIC_IN_PIC, false) ? "开启" : "关闭");
+        tvScale.setText(PlayerHelper.getScaleName(Hawk.get(HawkConfig.PLAY_SCALE, 0)));        
         tvPlay = findViewById(R.id.tvPlay);
         tvPlay.setText(PlayerHelper.getPlayerName(Hawk.get(HawkConfig.PLAY_TYPE, 0)));
         tvMediaCodec = findViewById(R.id.tvMediaCodec);
@@ -137,6 +140,8 @@ public class ModelSettingFragment extends BaseLazyFragment {
         tvSearchView.setText(getSearchView(Hawk.get(HawkConfig.SEARCH_VIEW, 0)));
         tvDns = findViewById(R.id.tvDns);
         tvDns.setText(OkGoHelper.dnsHttpsList.get(Hawk.get(HawkConfig.DOH_URL, 0)));
+		tvHomeDefaultShow = findViewById(R.id.tvHomeDefaultShow);
+        tvHomeDefaultShow.setText(Hawk.get(HawkConfig.HOME_DEFAULT_SHOW, false) ? "开启" : "关闭");
 
         //takagen99 : Set HomeApi as default
         findViewById(R.id.llHomeApi).requestFocus();
@@ -397,15 +402,41 @@ public class ModelSettingFragment extends BaseLazyFragment {
                 dialog.show();
             }
         });
-        // Switch to ON / OFF Picture-In-Picture -------------------------
-        findViewById(R.id.llPIP).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                FastClickCheckUtil.check(v);
-                Hawk.put(HawkConfig.PIC_IN_PIC, !Hawk.get(HawkConfig.PIC_IN_PIC, false));
-                tvPIP.setText(Hawk.get(HawkConfig.PIC_IN_PIC, true) ? "开启" : "关闭");
-            }
-        });
+        //后台播放
+        View backgroundPlay = findViewById(R.id.llBackgroundPlay);
+        TextView tvBgPlayType = findViewById(R.id.tvBackgroundPlayType);
+        Integer defaultBgPlayTypePos = Hawk.get(HawkConfig.BACKGROUND_PLAY_TYPE, 0);
+        ArrayList<String> bgPlayTypes = new ArrayList<>();
+        bgPlayTypes.add("关闭");
+        bgPlayTypes.add("开启");
+        bgPlayTypes.add("画中画");
+        tvBgPlayType.setText(bgPlayTypes.get(defaultBgPlayTypePos));
+        backgroundPlay.setOnClickListener(view -> {
+            FastClickCheckUtil.check(view);
+            SelectDialog<String> dialog = new SelectDialog<>(mActivity);
+            dialog.setTip("请选择");
+            dialog.setAdapter(new SelectDialogAdapter.SelectDialogInterface<String>() {
+                @Override
+                public void click(String value, int pos) {
+                    tvBgPlayType.setText(value);
+                    Hawk.put(HawkConfig.BACKGROUND_PLAY_TYPE, pos);
+                }
+                @Override
+                public String getDisplay(String val) {
+                    return val;
+                }
+            }, new DiffUtil.ItemCallback<String>() {
+                @Override
+                public boolean areItemsTheSame(@NonNull @NotNull String oldItem, @NonNull @NotNull String newItem) {
+                    return oldItem.equals(newItem);
+                }
+                @Override
+                public boolean areContentsTheSame(@NonNull @NotNull String oldItem, @NonNull @NotNull String newItem) {
+                    return oldItem.equals(newItem);
+                }
+            }, bgPlayTypes,defaultBgPlayTypePos);
+            dialog.show();
+        });        
         // Select PLAYER Type --------------------------------------------
         findViewById(R.id.llPlay).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -603,6 +634,15 @@ public class ModelSettingFragment extends BaseLazyFragment {
                 dialog.show();
             }
         });
+        // resetApp
+        findViewById(R.id.llReset).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                FastClickCheckUtil.check(v);
+                ResetDialog dialog = new ResetDialog(mActivity);
+                dialog.show();
+            }
+        });
         // Load Wallpaper from URL -------------------------------------
         findViewById(R.id.llWp).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -673,6 +713,14 @@ public class ModelSettingFragment extends BaseLazyFragment {
                     }
                 }, types, defaultPos);
                 dialog.show();
+            }
+        });
+        findViewById(R.id.showFastSearch).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                FastClickCheckUtil.check(v);
+                Hawk.put(HawkConfig.FAST_SEARCH_MODE, !Hawk.get(HawkConfig.FAST_SEARCH_MODE, false));
+                tvFastSearchText.setText(Hawk.get(HawkConfig.FAST_SEARCH_MODE, false) ? "已开启" : "已关闭");
             }
         });
         // Select App Language ( English / Chinese ) -----------------
@@ -779,6 +827,15 @@ public class ModelSettingFragment extends BaseLazyFragment {
                 FastClickCheckUtil.check(v);
                 AboutDialog dialog = new AboutDialog(mActivity);
                 dialog.show();
+            }
+        });
+		
+		findViewById(R.id.llHomeLive).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                FastClickCheckUtil.check(v);
+                Hawk.put(HawkConfig.HOME_DEFAULT_SHOW, !Hawk.get(HawkConfig.HOME_DEFAULT_SHOW, false));
+                tvHomeDefaultShow.setText(Hawk.get(HawkConfig.HOME_DEFAULT_SHOW, true) ? "开启" : "关闭");
             }
         });
 

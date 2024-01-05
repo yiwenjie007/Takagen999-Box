@@ -18,6 +18,7 @@ import android.widget.Toast;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.chad.library.adapter.base.BaseQuickAdapter;
+import com.github.catvod.crawler.JsLoader;
 import com.github.tvbox.osc.R;
 import com.github.tvbox.osc.api.ApiConfig;
 import com.github.tvbox.osc.base.BaseActivity;
@@ -36,7 +37,6 @@ import com.github.tvbox.osc.ui.tv.widget.SearchKeyboard;
 import com.github.tvbox.osc.util.FastClickCheckUtil;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.SearchHelper;
-import com.github.tvbox.osc.util.js.JSEngine;
 import com.github.tvbox.osc.viewmodel.SourceViewModel;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -168,7 +168,13 @@ public class SearchActivity extends BaseActivity {
         wordAdapter.setOnItemClickListener(new BaseQuickAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(BaseQuickAdapter adapter, View view, int position) {
-                search(wordAdapter.getItem(position));
+                if(Hawk.get(HawkConfig.FAST_SEARCH_MODE, false)){
+                    Bundle bundle = new Bundle();
+                    bundle.putString("title", wordAdapter.getItem(position));
+                    jumpActivity(FastSearchActivity.class, bundle);
+                }else {
+                    search(wordAdapter.getItem(position));
+                }
             }
         });
         mGridView.setHasFixedSize(true);
@@ -190,7 +196,7 @@ public class SearchActivity extends BaseActivity {
                         if (searchExecutorService != null) {
                             pauseRunnable = searchExecutorService.shutdownNow();
                             searchExecutorService = null;
-                            JSEngine.getInstance().stopAll();
+                            JsLoader.stopAll();
                         }
                     } catch (Throwable th) {
                         th.printStackTrace();
@@ -208,7 +214,13 @@ public class SearchActivity extends BaseActivity {
                 FastClickCheckUtil.check(v);
                 String wd = etSearch.getText().toString().trim();
                 if (!TextUtils.isEmpty(wd)) {
-                    search(wd);
+                    if(Hawk.get(HawkConfig.FAST_SEARCH_MODE, false)){
+                        Bundle bundle = new Bundle();
+                        bundle.putString("title", wd);
+                        jumpActivity(FastSearchActivity.class, bundle);
+                    }else {
+                        search(wd);
+                    }
                 } else {
                     Toast.makeText(mContext, getString(R.string.search_input), Toast.LENGTH_SHORT).show();
                 }
@@ -325,7 +337,13 @@ public class SearchActivity extends BaseActivity {
         if (intent != null && intent.hasExtra("title")) {
             String title = intent.getStringExtra("title");
             showLoading();
-            search(title);
+            if(Hawk.get(HawkConfig.FAST_SEARCH_MODE, false)){
+                Bundle bundle = new Bundle();
+                bundle.putString("title", title);
+                jumpActivity(FastSearchActivity.class, bundle);
+            }else {
+                search(title);
+            }
         }
         // 加载热词
         loadHotSearch();
@@ -381,7 +399,13 @@ public class SearchActivity extends BaseActivity {
         if (event.type == ServerEvent.SERVER_SEARCH) {
             String title = (String) event.obj;
             showLoading();
-            search(title);
+            if(Hawk.get(HawkConfig.FAST_SEARCH_MODE, false)){
+                Bundle bundle = new Bundle();
+                bundle.putString("title", title);
+                jumpActivity(FastSearchActivity.class, bundle);
+            }else{
+                search(title);
+            }
         }
     }
 
@@ -422,7 +446,7 @@ public class SearchActivity extends BaseActivity {
             if (searchExecutorService != null) {
                 searchExecutorService.shutdownNow();
                 searchExecutorService = null;
-                JSEngine.getInstance().stopAll();
+                JsLoader.stopAll();
             }
         } catch (Throwable th) {
             th.printStackTrace();
@@ -510,7 +534,7 @@ public class SearchActivity extends BaseActivity {
             if (searchExecutorService != null) {
                 searchExecutorService.shutdownNow();
                 searchExecutorService = null;
-                JSEngine.getInstance().stopAll();
+                JsLoader.load();
             }
         } catch (Throwable th) {
             th.printStackTrace();
